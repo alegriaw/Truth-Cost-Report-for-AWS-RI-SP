@@ -42,21 +42,24 @@ These instructions will get you a copy of the project up and running on your AWS
 
 [1] **In the Billing Console under your AWS account, add a Cost & Usage report with *Amazon Athena* enabled.**
 
-![CUR](https://github.com/alegriaw/truth-cost-report-RI-SP/assets/10775909/22904108-de58-4c12-b9c7-4c03dec52cd3)
+![CUR](https://github.com/alegriaw/Truth-Cost-Report-for-AWS-RI-SP/assets/10775909/25ee3283-a75e-4f1a-a8bc-5052235318f2)
+
 
 [2] **Setting up Athena query table with CloudFormation**
 * https://docs.aws.amazon.com/cur/latest/userguide/use-athena-cf.html </br>
 `Wait for the first report to be delivered to your Amazon S3 bucket. It can take up to 24 hours for AWS to deliver your first report.`
 
-![yml](https://github.com/alegriaw/truth-cost-report-RI-SP/assets/10775909/3da1914e-6c72-4786-a9c8-c70623d9f6d5)
+![yml](https://github.com/alegriaw/Truth-Cost-Report-for-AWS-RI-SP/assets/10775909/4e7e08c0-53ce-46f6-8428-ce9dc8a90bce)
+
 
 [3] **In the *same region* of Athen and S3, open CloudFormation, create a new stack to execute the .yml file, and generate a CUR query table in Athena.** 
 
-![cfn_stack](https://github.com/alegriaw/truth-cost-report-RI-SP/assets/10775909/dfaad9c7-763d-4a36-968c-6cb4d8200f88)
+![cfn_stack](https://github.com/alegriaw/Truth-Cost-Report-for-AWS-RI-SP/assets/10775909/b072f548-9bb5-467b-b5a6-67b523c5e4d0)
+
 
 [4] **After successfully generating a CUR table in Athena, you will need to set the S3 Bucket location where the Athena Query Result will be stored. Please go to the Athena `Settings` tab, and fill in the S3 bucket location where you want to store the Athena `query result`. Once the settings are complete, you can try running a query to see if the setup was successful.** 
 
-![athena query result](https://github.com/alegriaw/truth-cost-report-RI-SP/assets/10775909/230b5368-07ab-4de4-baab-5526d738c3a2)
+![athena query result](https://github.com/alegriaw/Truth-Cost-Report-for-AWS-RI-SP/assets/10775909/f1593d12-a908-4d36-84a8-500b7b72c626)
 
 
 (we set a new S3 bucket `aws-cur-athena-query-results-us-east-1` here.)
@@ -100,7 +103,8 @@ Choose your preferred runtime, such as Python 3.11.
 
 _(Optional)_  if you want to export your lambda log to CloudWatch Logs, add `CloudWatchLogFullAccess` permission policy
 
-![IAM policy](https://github.com/alegriaw/truth-cost-report-RI-SP/assets/10775909/e6ff87c9-1ff2-4597-a638-455d1a52e373)
+![IAM policy](https://github.com/alegriaw/Truth-Cost-Report-for-AWS-RI-SP/assets/10775909/7b9cc6f1-a401-4f67-8508-09ea7d3c6a88)
+
 
 ### 2. Parameter Setup and Modification in Source Code
 
