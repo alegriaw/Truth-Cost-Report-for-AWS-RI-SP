@@ -124,8 +124,6 @@ DELTA_DAYS = 60
 
 - Create a new file called `customer-account-list.csv`(you can download the sample file from github) and input the AWS Account ID and Name for generating recommendations. Put this file in the S3 bucket `customer-aws-ri-sp-recommendation` which created in the Prerequisites[5] steps.
 
-![customer-account-list-sample](https://github.com/alegriaw/truth-cost-report-RI-SP/assets/10775909/036b1490-fe54-449e-aab6-e95359f14848)
-
 
 ## ⛏️ Built & Testing <a name = "built_testing"></a>
 
