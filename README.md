@@ -62,6 +62,7 @@ These instructions will get you a copy of the project up and running on your AWS
 ![athena query result](https://github.com/alegriaw/Truth-Cost-Report-for-AWS-RI-SP/assets/10775909/f1593d12-a908-4d36-84a8-500b7b72c626)
 
 
+
 (we set a new S3 bucket `aws-cur-athena-query-results-us-east-1` here.)
 
 [5] Create a new S3 bucket: `customer-aws-ri-sp-recommendation` as your output report destination bucket.
@@ -123,6 +124,7 @@ DELTA_DAYS = 60
 ```
 
 - Create a new file called `customer-account-list.csv`(you can download the sample file from github) and input the AWS Account ID and Name for generating recommendations. Put this file in the S3 bucket `customer-aws-ri-sp-recommendation` which created in the Prerequisites[5] steps.
+
 
 
 ## ⛏️ Built & Testing <a name = "built_testing"></a>
