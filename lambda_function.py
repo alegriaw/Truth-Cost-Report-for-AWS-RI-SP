@@ -18,7 +18,7 @@ import xlsxwriter
 
 # configuration for s3
 REPORT_BUCKET_NAME = "customer-aws-ri-sp-recommendation" # output report destination s3 bucket
-PARAMETER_PATH = "customer-account-list-2.csv" # your report account list in report s3 bucket
+PARAMETER_PATH = "customer-account-list.csv" # your report account list in report s3 bucket
 # configuration for Athena
 ATHENA_QUERY_RESULT_S3_BUCKET = 'aws-cur-athena-query-results-us-east-1'  # Query result s3 bucket @ N. virginia
 CUR_DATABASE_NAME  = 'athenacurcfn_cur_report'  
@@ -123,7 +123,7 @@ def lambda_handler(event, context):
 
     for acct in linked_account_list:      
         response = getSavingsPlansUtilization(datetime.date.today().strftime("%Y-%m")+'-01',datetime.date.today().strftime("%Y-%m")+'-02' ,acct)
-        print(f'getSavingsPlansUtilization: {response}')
+        # print(f'getSavingsPlansUtilization: {response}')
         if response is not None and 'SavingsPlansUtilizationsByTime' in response:
             results[acct]["totalHourlyCommitment"] = round(float(response['SavingsPlansUtilizationsByTime'][0]['Utilization']['TotalCommitment'])/24, 2)
     # response_3 = getSavingsPlansUtilization(start_date,end_date)
