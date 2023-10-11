@@ -7,24 +7,24 @@ import botocore
 client = boto3.client('ce')
 
 
-def getSavingsPlansUtilization(start_date,end_date):
+def getSavingsPlansUtilization(start_date,end_date, acct):
     client = boto3.client('ce')
     try:
         response = client.get_savings_plans_utilization(
             TimePeriod={
                 'Start':start_date,
                 'End':end_date
-            }
-            # Granularity='MONTHLY',
-            # Metrics=[
-            #     'UnblendedCost',
-            # ],
-            # GroupBy=[
-            #     {
-            #         'Type': 'DIMENSION',
-            #         'Key': 'LINKED_ACCOUNT'
-            #     },
-            # ]
+            },
+            Granularity='DAILY',
+            Filter={
+                'Dimensions': {
+                    'Key': 'LINKED_ACCOUNT',
+                    'Values': [acct],
+                    'MatchOptions': [
+                        'EQUALS',
+                    ]
+                }
+            },
         )
 
         # print(response)

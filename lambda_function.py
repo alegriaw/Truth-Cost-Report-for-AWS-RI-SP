@@ -18,7 +18,7 @@ import xlsxwriter
 
 # configuration for s3
 REPORT_BUCKET_NAME = "customer-aws-ri-sp-recommendation" # output report destination s3 bucket
-PARAMETER_PATH = "customer-account-list.csv" # your report account list in report s3 bucket
+PARAMETER_PATH = "customer-account-list-2.csv" # your report account list in report s3 bucket
 # configuration for Athena
 ATHENA_QUERY_RESULT_S3_BUCKET = 'aws-cur-athena-query-results-us-east-1'  # Query result s3 bucket @ N. virginia
 CUR_DATABASE_NAME  = 'athenacurcfn_cur_report'  
@@ -59,12 +59,16 @@ def lambda_handler(event, context):
     
     # step 0. get account list
     account_list_file = s3.get_object(Bucket= REPORT_BUCKET_NAME , Key = PARAMETER_PATH)
-
-    for line in account_list_file['Body'].read().splitlines():
+    account_list_file_lines = account_list_file['Body'].read().splitlines()
+    print('63 ===> account_list_file.read():', account_list_file_lines)
+    
+    
+    for line in account_list_file_lines:
         each_line = line.decode('utf-8').split(",")
         linked_account = each_line[0]
         account_name = each_line[1]
-    
+        print('70 ===> @@account_name',account_name)
+        
         linked_account_list.append(linked_account)
         results[linked_account] = {}
         results[linked_account]["name"] = account_name
@@ -76,7 +80,7 @@ def lambda_handler(event, context):
         results[linked_account]["totalSpend_OD_covered"] = None
         results[linked_account]["coverage"] = None
     
-        # print(account_name)
+        
         
     LinkedAccount_string = "('" + "','".join(linked_account_list) + "')"
     # print(f"LinkedAccount_string: {LinkedAccount_string}")
@@ -118,8 +122,9 @@ def lambda_handler(event, context):
     print(f"Recommand Period >> Start Date: {start_date} - End Date: {end_date}")
 
     for acct in linked_account_list:      
-        response = getSavingsPlansUtilization(datetime.date.today().strftime("%Y-%m")+'-01',datetime.date.today().strftime("%Y-%m")+'-02' )
-        if response is not None and len(response['SavingsPlansUtilizationsByTime']) > 0 :
+        response = getSavingsPlansUtilization(datetime.date.today().strftime("%Y-%m")+'-01',datetime.date.today().strftime("%Y-%m")+'-02' ,acct)
+        print(f'getSavingsPlansUtilization: {response}')
+        if response is not None and 'SavingsPlansUtilizationsByTime' in response:
             results[acct]["totalHourlyCommitment"] = round(float(response['SavingsPlansUtilizationsByTime'][0]['Utilization']['TotalCommitment'])/24, 2)
     # response_3 = getSavingsPlansUtilization(start_date,end_date)
     
@@ -172,7 +177,7 @@ def lambda_handler(event, context):
         results[linked_account]["EstimatedSavingsPercentage"] = float(record['EstimatedSavingsPercentage'])
         
     # print(results)
-    
+    print('180 ===> getSavingsPlansUtilizationRecommendation, linked_account_list =', linked_account_list)
     
     # generate XLSX report
     
@@ -226,13 +231,13 @@ def lambda_handler(event, context):
     
     row +=1
     
-    
+    print('234===> linked_account_list =', linked_account_list)
     for acct in linked_account_list:
         col = 0
         worksheet.write(row, col, acct,data_format[col])
         col += 1
-        print(acct)
-        print(results[acct])
+        # print('239===> acct=',acct)
+        # print('239===> results[acct] =', results[acct])
         for key in data_key:
             worksheet.write(row,col,results[acct][key])
             col += 1
@@ -282,7 +287,8 @@ def lambda_handler(event, context):
         results[linked_account][instance_family]["HourlyCommitmentToPurchase"] = float(record['HourlyCommitmentToPurchase'])
         results[linked_account][instance_family]["EstimatedSavingsAmount"] = float(record['EstimatedSavingsAmount'])
         results[linked_account][instance_family]["EstimatedSavingsPercentage"] = float(record['EstimatedSavingsPercentage'])
-        
+    
+    # print('291 ===> getSavingsPlansEC2UtilizationRecommendation, linked_account_list =', linked_account_list)    
     
     # generate XLSX report
     
@@ -395,14 +401,20 @@ def lambda_handler(event, context):
     # step 3-2)	Download the recommendation for Compute Savings Plans and past the column to template. 
     # Amazon Elastic Compute Cloud - Compute, Amazon Relational Database Service, Amazon Redshift, Amazon ElastiCache, Amazon Elasticsearch Service
     response_3_2 = getReservationPurchaseRecommendation("Amazon ElastiCache")
-    print("response_3_2")
-    print(response_3_2)
+    # print("403====> response_3_2")
+    # print(response_3_2['Recommendations'])
     
     report_record = []
     if len(response_3_2['Recommendations']) >0:
-        for record in response_3_2['Recommendations'][0]['RecommendationDetails']:
+        for record in response_3_2['Recommendations'][0]['RecommendationDetails']: 
             linked_account = record["AccountId"]
-    
+            
+            # if the linked account not in the assigned list then skip to write into worksheet:
+            if linked_account not in linked_account_list:
+                print(f'421==> {linked_account} not in linked_account_list')
+                continue
+                # results[linked_account]["name"] = ""
+            
             worksheet3.write(row, 0, response_3_2['Metadata']['GenerationTimestamp'])
             worksheet3.write(row, 1, linked_account)
             #if linked_account in results:
@@ -478,34 +490,42 @@ def lambda_handler(event, context):
     
     row +=1
     
-    # step 3-2)	Download the recommendation for Compute Savings Plans and past the column to template. 
+    # step 3-2)	Download the recommendation for RI  and past the column to template. 
     # Amazon Elastic Compute Cloud - Compute, Amazon Relational Database Service, Amazon Redshift, Amazon ElastiCache, Amazon Elasticsearch Service
     response_3_2 = getReservationPurchaseRecommendation("Amazon Relational Database Service")
-    # print("response_3_2")
-    # print(response_3_2)
+    # print("494 ====> response_3_2")
+    # print(response_3_2['Recommendations'])
     
     report_record = []
     ### sample output
+    if len(response_3_2['Recommendations']) >0:
+        for record in response_3_2['Recommendations'][0]['RecommendationDetails']:
+            linked_account = record["AccountId"]
+            
+            # if the linked account not in the assigned list then skip to write into worksheet:
+            if linked_account not in linked_account_list:
+                print(f'503==> {linked_account} not in linked_account_list')
+                continue
+                # results[linked_account]["name"] = ""
     
-    for record in response_3_2['Recommendations'][0]['RecommendationDetails']:
-        linked_account = record["AccountId"]
-        # instance_family = record["SavingsPlansDetails"]["InstanceFamily"]
-        worksheet4.write(row, 0, response_3_2['Metadata']['GenerationTimestamp'])
-        worksheet4.write(row, 1, linked_account)
-        #if linked_account in results:
-        worksheet4.write(row, 2, results[linked_account]["name"])
-        #else:
-        #    worksheet4.write(row, 2, "")
-        worksheet4.write(row, 3, record["AverageUtilization"])
-        worksheet4.write(row, 4, record["InstanceDetails"]["RDSInstanceDetails"]["DatabaseEngine"])
-        worksheet4.write(row, 5, record["RecommendedNumberOfInstancesToPurchase"])
-        worksheet4.write(row, 6, record["RecommendedNormalizedUnitsToPurchase"])
-        worksheet4.write(row, 7, record["InstanceDetails"]["RDSInstanceDetails"]["InstanceType"])
-        worksheet4.write(row, 8, record["EstimatedMonthlySavingsAmount"])
-        worksheet4.write(row, 9, record["EstimatedBreakEvenInMonths"])
-    
-        row +=1  
-    
+            
+            # instance_family = record["SavingsPlansDetails"]["InstanceFamily"]
+            worksheet4.write(row, 0, response_3_2['Metadata']['GenerationTimestamp'])
+            worksheet4.write(row, 1, linked_account)
+            #if linked_account in results:
+            worksheet4.write(row, 2, results[linked_account]["name"])
+            #else:
+            #    worksheet4.write(row, 2, "")
+            worksheet4.write(row, 3, record["AverageUtilization"])
+            worksheet4.write(row, 4, record["InstanceDetails"]["RDSInstanceDetails"]["DatabaseEngine"])
+            worksheet4.write(row, 5, record["RecommendedNumberOfInstancesToPurchase"])
+            worksheet4.write(row, 6, record["RecommendedNormalizedUnitsToPurchase"])
+            worksheet4.write(row, 7, record["InstanceDetails"]["RDSInstanceDetails"]["InstanceType"])
+            worksheet4.write(row, 8, record["EstimatedMonthlySavingsAmount"])
+            worksheet4.write(row, 9, record["EstimatedBreakEvenInMonths"])
+        
+            row +=1  
+        
     
     #######
     # part 5 
