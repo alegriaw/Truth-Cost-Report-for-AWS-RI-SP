@@ -31,7 +31,8 @@
 
 ## 🧐 About <a name = "about"></a>
 
-This sample code is for customer to run lambda functions on their envorinment to genereate RI/SP recommedatoin reports for their linked accounts as execl files.
+Cloud cost optimization involves improving the efficiency of cloud costs by identifying and reducing errors in resource management or excess resources, leveraging discounts to reserve higher capacity, and adjusting compute resources to specific applications and workloads in customers' cloud environment. A solution is provided to allow customers to run lambda functions in their environment to generate recommendation reports for their linked accounts as Excel files, specifically for Reserved Instances (RI) and Savings Plans (SP). This solution helps save a significant amount of time for customers.
+
 
 ## 🏁 Getting Started <a name = "getting_started"></a>
 
