@@ -79,12 +79,15 @@ def lambda_handler(event, context):
         results[linked_account]["totalSpend_SP_covered"] = None
         results[linked_account]["totalSpend_OD_covered"] = None
         results[linked_account]["coverage"] = None
-    
-        
-        
+   
     LinkedAccount_string = "('" + "','".join(linked_account_list) + "')"
     # print(f"LinkedAccount_string: {LinkedAccount_string}")
-
+    
+    ###########
+    # sheet 1  
+    # compute-sp-recommendation
+    # #######
+    # 
     # step 1.	Gen Customer CUR report for SP usage by Athena
     response_1 = awsCUR.getLinkedAcct_SP_usage(CUR_TABLE_NAME, CUR_DATABASE_NAME, ATHENA_QUERY_RESULT_S3_BUCKET, str(DELTA_DAYS),start_date,end_date,LinkedAccount_string)
     # print(f'SP usage: {response_1}')
@@ -129,8 +132,6 @@ def lambda_handler(event, context):
     # response_3 = getSavingsPlansUtilization(start_date,end_date)
     
     # response = getSavingsPlansUtilizationRecommendation('2021-04-01','2021-06-01')
-
-
     # response_3 = getSavingsPlans()
     
     # if response_3:
@@ -157,27 +158,28 @@ def lambda_handler(event, context):
     response_3_2 = getSavingsPlansUtilizationRecommendation()
     # print("response_3_2")
     # print(response_3_2)
-    for record in response_3_2['SavingsPlansPurchaseRecommendation']['SavingsPlansPurchaseRecommendationDetails']:
-        linked_account = record["AccountId"]
-    
-        if linked_account not in linked_account_list:
-            linked_account_list.append(linked_account)
-            results[linked_account]={}
-            results[linked_account]["name"] = ""
-            results[linked_account]["totalHourlyCommitment"] = None
-            results[linked_account]["HourlyCommitmentToPurchase"] = None
-            results[linked_account]["EstimatedSavingsAmount"] = None
-            results[linked_account]["EstimatedSavingsPercentage"] = None
-            results[linked_account]["totalSpend_SP_covered"] = None
-            results[linked_account]["totalSpend_OD_covered"] = None
-            results[linked_account]["coverage"] = None
-            
-        results[linked_account]["HourlyCommitmentToPurchase"] = float(record['HourlyCommitmentToPurchase'])
-        results[linked_account]["EstimatedSavingsAmount"] = float(record['EstimatedSavingsAmount'])
-        results[linked_account]["EstimatedSavingsPercentage"] = float(record['EstimatedSavingsPercentage'])
+    if response_3_2 is not None and 'SavingsPlansPurchaseRecommendationDetails' in response_3_2:
+        for record in response_3_2['SavingsPlansPurchaseRecommendation']['SavingsPlansPurchaseRecommendationDetails']:
+            linked_account = record["AccountId"]
         
-    # print(results)
-    print('180 ===> getSavingsPlansUtilizationRecommendation, linked_account_list =', linked_account_list)
+            if linked_account not in linked_account_list:
+                linked_account_list.append(linked_account)
+                results[linked_account]={}
+                results[linked_account]["name"] = ""
+                results[linked_account]["totalHourlyCommitment"] = None
+                results[linked_account]["HourlyCommitmentToPurchase"] = None
+                results[linked_account]["EstimatedSavingsAmount"] = None
+                results[linked_account]["EstimatedSavingsPercentage"] = None
+                results[linked_account]["totalSpend_SP_covered"] = None
+                results[linked_account]["totalSpend_OD_covered"] = None
+                results[linked_account]["coverage"] = None
+                
+            results[linked_account]["HourlyCommitmentToPurchase"] = float(record['HourlyCommitmentToPurchase'])
+            results[linked_account]["EstimatedSavingsAmount"] = float(record['EstimatedSavingsAmount'])
+            results[linked_account]["EstimatedSavingsPercentage"] = float(record['EstimatedSavingsPercentage'])
+            
+        # print(results)
+    print('182 ===> getSavingsPlansUtilizationRecommendation, linked_account_list =', linked_account_list)
     
     # generate XLSX report
     
@@ -231,7 +233,7 @@ def lambda_handler(event, context):
     
     row +=1
     
-    print('234===> linked_account_list =', linked_account_list)
+    print('235===> linked_account_list =', linked_account_list)
     for acct in linked_account_list:
         col = 0
         worksheet.write(row, col, acct,data_format[col])
@@ -244,7 +246,8 @@ def lambda_handler(event, context):
         row +=1        
     
     ###########
-    # sheet 2  
+    # sheet 2 
+    # ec2_sp_recommendation sheet 
     # #######
     # 
     
@@ -270,32 +273,32 @@ def lambda_handler(event, context):
     # print("response_3_2")
     # print(response_3_2)
     
-    for record in response_3_2['SavingsPlansPurchaseRecommendation']['SavingsPlansPurchaseRecommendationDetails']:
-        linked_account = record["AccountId"]
-        instance_family = record["SavingsPlansDetails"]["InstanceFamily"]
-    
-        if linked_account not in linked_account_list:
-            linked_account_list.append(linked_account)
-            results[linked_account]={}
-            results[linked_account]["name"] = ""
-            results[linked_account]["instance_family_list"] = []
-        if instance_family not in results[linked_account]["instance_family_list"]:
-            results[linked_account]["instance_family_list"].append(instance_family)
-            results[linked_account][instance_family] = {}
-    
-        # results[linked_account]["name"] = account_name
-        results[linked_account][instance_family]["HourlyCommitmentToPurchase"] = float(record['HourlyCommitmentToPurchase'])
-        results[linked_account][instance_family]["EstimatedSavingsAmount"] = float(record['EstimatedSavingsAmount'])
-        results[linked_account][instance_family]["EstimatedSavingsPercentage"] = float(record['EstimatedSavingsPercentage'])
-    
+    if response_3_2 is not None and 'SavingsPlansPurchaseRecommendationDetails' in response_3_2:
+        for record in response_3_2['SavingsPlansPurchaseRecommendation']['SavingsPlansPurchaseRecommendationDetails']:
+            linked_account = record["AccountId"]
+            instance_family = record["SavingsPlansDetails"]["InstanceFamily"]
+        
+            if linked_account not in linked_account_list:
+                linked_account_list.append(linked_account)
+                results[linked_account]={}
+                results[linked_account]["name"] = ""
+                results[linked_account]["instance_family_list"] = []
+            if instance_family not in results[linked_account]["instance_family_list"]:
+                results[linked_account]["instance_family_list"].append(instance_family)
+                results[linked_account][instance_family] = {}
+        
+            # results[linked_account]["name"] = account_name
+            results[linked_account][instance_family]["HourlyCommitmentToPurchase"] = float(record['HourlyCommitmentToPurchase'])
+            results[linked_account][instance_family]["EstimatedSavingsAmount"] = float(record['EstimatedSavingsAmount'])
+            results[linked_account][instance_family]["EstimatedSavingsPercentage"] = float(record['EstimatedSavingsPercentage'])
+        
     # print('291 ===> getSavingsPlansEC2UtilizationRecommendation, linked_account_list =', linked_account_list)    
     
     # generate XLSX report
     
     worksheet2 = workbook.add_worksheet('ec2_sp_recommendation')
     
-    
-    
+     
     
     worksheet2.set_column(0, 0, 12)
     worksheet2.set_column(1, 1, 15)
@@ -337,6 +340,7 @@ def lambda_handler(event, context):
     
     #####
     # part 3 
+    # elasticache-ri-recommendation sheet
     ####
     
        
@@ -432,6 +436,7 @@ def lambda_handler(event, context):
     
     ########
     # part 4
+    # rds-ri-recommendation sheet
     #######
     
  
@@ -529,6 +534,7 @@ def lambda_handler(event, context):
     
     #######
     # part 5 
+    # ri-ec-coverage sheet
     #######
     
     
@@ -632,6 +638,7 @@ def lambda_handler(event, context):
     
     #######
     # part 6
+    # ri-rds-coverage sheet
     #######
     
     
@@ -723,6 +730,133 @@ def lambda_handler(event, context):
             col += 1
         row +=1        
         print(results[acct])
+   
+    #######
+    # part 7
+    # SP purchased sheet
+    #######
+     
+    # generate XLSX report
+    
+    # workbook = xlsxwriter.Workbook('ri-rds-coverage.xlsx')
+    worksheet7 = workbook.add_worksheet('sp-purchased')
+    
+    
+    worksheet7.set_column(0, 0, 12)
+    worksheet7.set_column(1, 1, 15)
+    worksheet7.set_column(2, 2, 10)
+    worksheet7.set_column(3, 3, 10)
+    worksheet7.set_column(4, 4, 10)
+    worksheet7.set_column(5, 5, 10)
+    worksheet7.set_column(6, 6, 10)
+    worksheet7.set_column(7, 7, 10)
+    worksheet7.set_column(8, 8, 10)
+    
+    xlsx_header = ["Account ID","Account Name","RI/SP Type", "RI/SP resource arn", "RI/SP Expired Date", "Instance Type", "RI/SP Term", "RI/SP Payment"]
+    data_key = ["name","ri_sp_type","ri_sp_arn","ri_sp_end_date","instance_type","ri_sp_term","ri_sp_payment"]
+    row = 0
+    col = 0
+    
+    for header in xlsx_header:
+        print(str(col) + ", "+ header)
+        worksheet7.write(row, col, header,ri_hf_1)
+        col += 1
+    
+    row +=1
+    
+    #step 3. Gen Customer CUR report for SP purchase by Athena 
+    response_3 = awsCUR.getLinkedAcct_RISP_purchased(CUR_TABLE_NAME, CUR_DATABASE_NAME, ATHENA_QUERY_RESULT_S3_BUCKET,LinkedAccount_string, 'SavingsPlan')
+    print(f'769==> response_3 = {response_3}')
+
+    # report_record = []
+    ### sample output
+    if response_3 is None:
+        print("SP purchased no data")
+    else:
+        for record in response_3:
+            linked_account = record["Linked_AccountID"]
+                   
+            # if the linked account not in the assigned list then skip to write into worksheet:
+            if linked_account not in linked_account_list:
+                print(f'781==> {linked_account} not in linked_account_list')
+                continue
+                # results[linked_account]["name"] = ""
+    
+            worksheet7.write(row, 0, linked_account)
+            worksheet7.write(row, 1, results[linked_account]["name"])
+            worksheet7.write(row, 2, record["ri_sp_type"])
+            worksheet7.write(row, 3, record["ri_sp_arn_mapping"])
+            worksheet7.write(row, 4, record["ri_sp_end_date"])
+            worksheet7.write(row, 5, record["instance_type"])
+            worksheet7.write(row, 6, record["ri_sp_term"])
+            worksheet7.write(row, 7, record["ri_sp_payment"])
+        
+            row +=1  
+    
+    #######
+    # part 8
+    # RI purchased sheet
+    #######
+     
+    # generate XLSX report
+    
+    # workbook = xlsxwriter.Workbook('ri-rds-coverage.xlsx')
+    worksheet8 = workbook.add_worksheet('ri-purchased')
+    
+    
+    worksheet8.set_column(0, 0, 12)
+    worksheet8.set_column(1, 1, 15)
+    worksheet8.set_column(2, 2, 10)
+    worksheet8.set_column(3, 3, 10)
+    worksheet8.set_column(4, 4, 10)
+    worksheet8.set_column(5, 5, 10)
+    worksheet8.set_column(6, 6, 10)
+    worksheet8.set_column(7, 7, 10)
+    worksheet8.set_column(8, 8, 10)
+    
+    xlsx_header = ["Account ID","Account Name","RI/SP Type", "RI/SP resource arn", "RI/SP Expired Date", "Instance Type", "RI/SP Term", "RI/SP Payment"]
+    data_key = ["name","ri_sp_type","ri_sp_arn","ri_sp_end_date","instance_type","ri_sp_term","ri_sp_payment"]
+    row = 0
+    col = 0
+    
+    for header in xlsx_header:
+        print(str(col) + ", "+ header)
+        worksheet8.write(row, col, header,ri_hf_1)
+        col += 1
+    
+    row +=1
+
+
+    #step 3. Gen Customer CUR report for SP purchase by Athena 
+    response_3 = awsCUR.getLinkedAcct_RISP_purchased(CUR_TABLE_NAME, CUR_DATABASE_NAME, ATHENA_QUERY_RESULT_S3_BUCKET,LinkedAccount_string, 'Reserved')
+    print(f'832==> response_3 = {response_3}')
+
+    ### sample output
+    if response_3 is None:
+        print("RI purchased no data")
+    else:
+        for record in response_3:
+            linked_account = record["Linked_AccountID"]
+                   
+            # if the linked account not in the assigned list then skip to write into worksheet:
+            if linked_account not in linked_account_list:
+                print(f'843==> {linked_account} not in linked_account_list')
+                continue
+                # results[linked_account]["name"] = ""
+    
+            worksheet8.write(row, 0, linked_account)
+            worksheet8.write(row, 1, results[linked_account]["name"])
+            worksheet8.write(row, 2, record["ri_sp_type"])
+            worksheet8.write(row, 3, record["ri_sp_arn_mapping"])
+            worksheet8.write(row, 4, record["ri_sp_end_date"])
+            worksheet8.write(row, 5, record["instance_type"])
+            worksheet8.write(row, 6, record["ri_sp_term"])
+            worksheet8.write(row, 7, record["ri_sp_payment"])
+        
+            row +=1  
+
+    
+    ##End of Excel sheet
     workbook.close()
 
     #s3.upload_file('/tmp/customer-linkedAccount-RI&SP-recommendation.xlsx', REPORT_BUCKET_NAME,'customer-linkedAccount-RI&SP-recommendation.xlsx')

@@ -314,3 +314,65 @@ def getLinkedAcct_RI_coverage(table_name,database,s3_bucket,day_range,service_na
 
     # f.close()
     return results
+
+
+def getLinkedAcct_RISP_purchased(table_name,database,s3_bucket,LinkedAccount_string, purchaseOpt):
+    # query_sql = "select * from test_jayhuang_cur limit 2"
+    # print(f"getLinkedAcct_RI_coverage LinkedAccount_string: {LinkedAccount_string}")
+    
+    query_sql = ("""
+        SELECT DISTINCT
+        a."purchase_option"
+        ,(CASE WHEN (a."purchase_option" = 'Reserved') THEN concat(a."purchase_option",' ',a.service,' ',b.ri_sp_offering) WHEN (a."purchase_option" = 'SavingsPlan') THEN concat(a."purchase_option",' ',b.ri_sp_offering) ELSE 'NA' END) "ri_sp_type"
+        , a."ri_sp_arn_mapping"
+        ,  "a"."billing_period_mapping"
+        , "a"."payer_account_id_mapping"
+        , "a"."linked_account_id_mapping" as Linked_AccountID
+        , "a"."instance_type"
+        , "a"."ri_sp_end_date"
+        , "b"."ri_sp_term"
+        , "b"."ri_sp_offering"
+        , "b"."ri_sp_payment"
+        FROM
+        (   (
+            SELECT DISTINCT
+            "bill_billing_period_start_date" "billing_period_mapping"
+            , "bill_payer_account_id" "payer_account_id_mapping"
+            , "line_item_usage_account_id" "Linked_account_id_mapping"
+            , (CASE WHEN ("savings_plan_savings_plan_a_r_n" <> '') THEN "savings_plan_savings_plan_a_r_n" WHEN ("reservation_reservation_a_r_n" <> '') THEN "reservation_reservation_a_r_n" ELSE '' END) "ri_sp_arn_mapping"
+            , (CASE WHEN ("savings_plan_savings_plan_a_r_n" <> '') THEN CAST("from_iso8601_timestamp"("savings_plan_end_time") AS timestamp) WHEN (("reservation_reservation_a_r_n" <> '') AND ("reservation_end_time" <> '')) THEN CAST("from_iso8601_timestamp"("reservation_end_time") AS timestamp) ELSE null END) "ri_sp_end_date"
+            , (CASE WHEN ("savings_plan_savings_plan_a_r_n" <> '') THEN 'SavingsPlan' WHEN ("reservation_reservation_a_r_n" <> '') THEN 'Reserved' WHEN ("line_item_usage_type" LIKE '%Spot%') THEN 'Spot' ELSE 'OnDemand' END) "purchase_option"
+            , (CASE WHEN ("line_item_product_code" = 'AWSElementalMediaLive') THEN "split_part"("line_item_line_item_description", 'reserved', 2) WHEN ("savings_plan_savings_plan_a_r_n" <> '') THEN product_instance_type ELSE "split_part"("line_item_line_item_description", ',', 2) END) "instance_type"
+            , (CASE WHEN (("bill_billing_entity" = 'AWS Marketplace') AND (NOT ("line_item_line_item_type" LIKE '%Discount%'))) THEN "Product_Product_Name" WHEN ("product_servicecode" = '') THEN "line_item_product_code" ELSE "product_servicecode" END) "service"
+            FROM
+                """+table_name+""" 
+            WHERE (("line_item_line_item_type" = 'RIFee') OR ("line_item_line_item_type" = 'SavingsPlanRecurringFee'))
+            )  a
+            LEFT JOIN (
+            SELECT DISTINCT
+                "bill_billing_period_start_date" "billing_period_mapping"
+            , "bill_payer_account_id" "payer_account_id_mapping"
+            , "line_item_usage_account_id" "Linked_account_id_mapping"
+            , (CASE WHEN ("savings_plan_savings_plan_a_r_n" <> '') THEN "savings_plan_savings_plan_a_r_n" WHEN ("reservation_reservation_a_r_n" <> '') THEN "reservation_reservation_a_r_n" ELSE '' END) "ri_sp_arn_mapping"
+            , (CASE WHEN ("savings_plan_savings_plan_a_r_n" <> '') THEN "savings_plan_purchase_term" WHEN ("reservation_reservation_a_r_n" <> '') THEN "pricing_lease_contract_length" ELSE '' END) "ri_sp_term"
+            , (CASE WHEN ("savings_plan_savings_plan_a_r_n" <> '') THEN "savings_plan_offering_type" WHEN ("reservation_reservation_a_r_n" <> '') THEN "pricing_offering_class" ELSE '' END) "ri_sp_offering"
+            , (CASE WHEN ("savings_plan_savings_plan_a_r_n" <> '') THEN "savings_plan_payment_option" WHEN ("reservation_reservation_a_r_n" <> '') THEN "pricing_purchase_option" ELSE '' END) "ri_sp_Payment"
+            , (CASE WHEN ("savings_plan_savings_plan_a_r_n" <> '') THEN 'SavingsPlan' WHEN ("reservation_reservation_a_r_n" <> '') THEN 'Reserved' WHEN ("line_item_usage_type" LIKE '%Spot%') THEN 'Spot' ELSE 'OnDemand' END) "purchase_option"
+            , (CASE WHEN ((("line_item_usage_type" LIKE '%Spot%') AND ("line_item_product_code" = 'AmazonEC2')) AND ("line_item_line_item_type" = 'Usage')) THEN "split_part"("line_item_line_item_description", ' ', 1) ELSE "product_instance_type" END) "instance_type"
+            FROM
+                """+table_name+""" 
+            -- WHERE (("line_item_line_item_type" = 'DiscountedUsage') OR ("line_item_line_item_type" = 'SavingsPlanCoveredUsage'))
+            )  b ON ( (("a"."ri_sp_arn_mapping" = "b"."ri_sp_arn_mapping") AND ("a"."billing_period_mapping" = "b"."billing_period_mapping")) AND ("a"."linked_account_id_mapping" = "b"."linked_account_id_mapping") AND ("a"."payer_account_id_mapping" = "b"."payer_account_id_mapping"))
+        )
+        WHERE ("a"."billing_period_mapping" >= "date"('2023-10-01')) and ("a"."ri_sp_end_date" >= current_date) 
+        and "a"."linked_account_id_mapping" in """+LinkedAccount_string+"""
+        and "a"."purchase_option" = '"""+purchaseOpt+"""'
+        order by "ri_sp_type","a"."ri_sp_arn_mapping","a"."ri_sp_end_date","a"."linked_account_id_mapping"
+
+        """)
+
+    print(f"377 query_sql: {query_sql}")
+
+    results = run_query(query_sql,database,s3_bucket)
+    print(results)
+    return results
